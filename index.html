@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Expansion Dashboard — EMEA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --border: #e8eaed;
+    --text: #1a1f2e;
+    --muted: #6b7280;
+    --north: #1a56db;
+    --south: #057a55;
+    --total: #c2410c;
+    --won: #059669;
+    --lost: #dc2626;
+    --open: #d97706;
+    --purple: #7c3aed;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    padding: 0 2rem;
+  }
+  .header-inner {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; padding: 14px 0;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: #1a1f2e; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; font-weight: 700;
+  }
+  .logo-text h1 { font-size: 15px; font-weight: 600; }
+  .logo-text p { font-size: 12px; color: var(--muted); }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text); cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: var(--north); }
+  .badge-excl {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;
+    white-space: nowrap;
+  }
+  .last-updated { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* ── Main ── */
+  main { max-width: 1400px; margin: 0 auto; padding: 28px 2rem; }
+
+  /* ── Loading / Error ── */
+  #loading-state {
+    text-align: center; padding: 80px 20px;
+    font-size: 15px; color: var(--muted);
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--north); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Section ── */
+  .section { margin-bottom: 32px; }
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+
+  /* ── KPI Grid ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .kpi-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 26px; font-weight: 600; line-height: 1; }
+  .kpi-delta { font-size: 12px; font-weight: 500; margin-top: 5px; }
+  .kpi-delta.up { color: var(--won); }
+  .kpi-delta.down { color: var(--lost); }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* ── Chart Grid ── */
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chart-grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  @media (max-width: 900px) {
+    .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Chart Card ── */
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .chart-card-title {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-card-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Funnel bars ── */
+  .funnel-list { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+  .funnel-row { display: flex; align-items: center; gap: 10px; }
+  .funnel-stage { font-size: 12px; color: var(--muted); min-width: 130px; flex-shrink: 0; }
+  .funnel-bar-wrap { flex: 1; height: 22px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .funnel-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+  .funnel-bar span { font-size: 11px; font-weight: 500; color: #fff; }
+  .funnel-count { font-size: 12px; color: var(--muted); min-width: 28px; text-align: right; }
+
+  /* ── Win rate boxes ── */
+  .wr-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .wr-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .wr-num { font-size: 22px; font-weight: 600; }
+  .wr-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .wr-target { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+  /* ── Rep table ── */
+  .rep-list { display: flex; flex-direction: column; gap: 7px; }
+  .rep-row { display: flex; align-items: center; gap: 10px; }
+  .rep-name { font-size: 12px; color: var(--text); min-width: 150px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rep-bar-wrap { flex: 1; height: 18px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .rep-bar { height: 100%; border-radius: 4px; background: var(--north); transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+  .rep-val { font-size: 11px; color: var(--muted); min-width: 55px; text-align: right; font-family: 'DM Mono', monospace; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; font-size: 11px; color: var(--muted);
+    padding: 24px 2rem; border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  #dashboard { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">↑</div>
+      <div class="logo-text">
+        <h1>Expansion Performance</h1>
+        <p>EMEA · Upsell & Cross-sell · ELT Board View</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="filter-group">
+        <select id="filter-region"><option value="All">All Regions</option></select>
+        <select id="filter-owner"><option value="All">All Owners</option></select>
+        <select id="filter-quarter"><option value="All">All Quarters</option></select>
+      </div>
+      <span class="badge-excl">Excl. Pricing Migration 2025</span>
+      <span class="last-updated" id="last-updated">Refreshing…</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="loading-state">
+    <div class="spinner"></div>
+    Loading data from Google Sheets…
+  </div>
+
+  <div id="dashboard">
+
+    <!-- KPIs -->
+    <div class="section">
+      <div class="section-label">Key metrics</div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+    </div>
+
+    <!-- Revenue trend + area -->
+    <div class="section">
+      <div class="section-label">Quarterly upsell value (Correct Amount for Quota)</div>
+      <div class="chart-grid-3">
+        <div class="chart-card">
+          <div class="chart-card-title">Upsell value by region (€)</div>
+          <div class="chart-card-sub">Stacked by Northern / Southern Europe</div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--north)"></div>Northern Europe</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--south)"></div>Southern Europe</div>
+          </div>
+          <canvas id="chart-region" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Total upsell trend</div>
+          <div class="chart-card-sub">All EMEA combined</div>
+          <canvas id="chart-trend" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Win rate + deals -->
+    <div class="section">
+      <div class="section-label">Win rate & deal volume</div>
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-card-title">Win rate by quarter (%)</div>
+          <div class="chart-card-sub">Target: 66% overall · 50% upsell · 80% branches</div>
+          <canvas id="chart-winrate" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Deals won & lost per quarter</div>
+          <div class="chart-card-sub"></div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--won)"></div>Won</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--lost)"></div>Lost</div>
+          </div>
+          <canvas id="chart-deals" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deal mix + ASP + Win rate boxes -->
+    <div class="section">
+      <div class="section-label">Deal mix & conversion</div>
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-card-title">Upsell value by deal type (€)</div>
+          <canvas id="chart-dealtype" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Win rate targets</div>
+          <div class="chart-card-sub">Current quarter performance vs targets</div>
+          <div class="wr-boxes" id="wr-boxes"></div>
+          <div style="margin-top:20px">
+            <div class="chart-card-title">Avg deal size trend (€)</div>
+            <canvas id="chart-asp" height="130"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline funnel -->
+    <div class="section">
+      <div class="section-label">Pipeline & funnel</div>
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-card-title">Open pipeline by stage</div>
+          <div class="chart-card-sub">Number of open opportunities per stage</div>
+          <div class="funnel-list" id="funnel-list"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Open pipeline by close month (€)</div>
+          <canvas id="chart-pipeline" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rep leaderboard -->
+    <div class="section">
+      <div class="section-label" id="rep-section-label">Rep performance — current quarter</div>
+      <div class="chart-card">
+        <div class="chart-card-title" id="rep-title">Upsell won (€) — current vs previous quarter</div>
+        <div style="margin-top:14px">
+          <canvas id="chart-rep" height="260"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loss analysis -->
+    <div class="section" id="loss-section">
+      <div class="section-label">Loss analysis</div>
+      <div class="chart-card">
+        <div class="chart-card-title">Top closing reasons for lost deals</div>
+        <canvas id="chart-loss" height="160"></canvas>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  Data: KAM-AM Performance Management GSheet · Auto-refreshes hourly · Pricing Migration 2025 excluded · Metric: Correct Amount (for Quota) / DBV
+</footer>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const SHEET_ID = '1-1BgQzRNqKKYvl7Yspzty3u-KjVI1dFsbLDUNYi8Cdo'
+const MAIN_GID = '0'
+const CONV_GID = '1167427694'
+
+const QUARTERS = [
+  '2024-Q1','2024-Q2','2024-Q3','2024-Q4',
+  '2025-Q1','2025-Q2','2025-Q3','2025-Q4',
+  '2026-Q1','2026-Q2',
+]
+const QLABELS = {
+  '2024-Q1':"Q1'24",'2024-Q2':"Q2'24",'2024-Q3':"Q3'24",'2024-Q4':"Q4'24",
+  '2025-Q1':"Q1'25",'2025-Q2':"Q2'25",'2025-Q3':"Q3'25",'2025-Q4':"Q4'25",
+  '2026-Q1':"Q1'26",'2026-Q2':"Q2'26 YTD",
+}
+
+const C = {
+  north:'#1a56db', south:'#057a55', total:'#c2410c',
+  won:'#059669', lost:'#dc2626', open:'#d97706', purple:'#7c3aed',
+  grid:'rgba(0,0,0,0.05)', text:'#9ca3af',
+}
+
+const CHART_DEFAULTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: C.grid }, border: { display: false }, ticks: { color: C.text, font: { size: 11, family: 'DM Sans' } } },
+    y: { grid: { color: C.grid }, border: { display: false }, ticks: { color: C.text, font: { size: 11, family: 'DM Sans' } } }
+  }
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let ALL_OPPS = []
+let charts = {}
+
+// ─── CSV Parser ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = []; let row = []; let field = ''; let inQ = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQ) {
+      if (ch === '"' && text[i+1] === '"') { field += '"'; i++ }
+      else if (ch === '"') inQ = false
+      else field += ch
+    } else {
+      if (ch === '"') inQ = true
+      else if (ch === ',') { row.push(field); field = '' }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = '' }
+      else if (ch !== '\r') field += ch
+    }
+  }
+  if (row.length) { row.push(field); rows.push(row) }
+  return rows
+}
+
+function toRecords(rows) {
+  const headerIdx = rows.findIndex(r => r.some(c => c.trim() === 'Opportunity ID'))
+  if (headerIdx === -1) return []
+  const headers = rows[headerIdx].map(h => h.trim())
+  return rows.slice(headerIdx + 1)
+    .filter(r => r.some(c => c.trim()))
+    .map(r => {
+      const rec = {}
+      headers.forEach((h, i) => rec[h] = (r[i] || '').trim())
+      return rec
+    })
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function parseAmt(v) {
+  if (!v || v === '-' || v === '#N/A') return 0
+  return parseFloat(v.replace(/[^0-9.\-]/g, '')) || 0
+}
+
+function parseDate(v) {
+  if (!v) return null
+  const p = v.split('/')
+  if (p.length === 3) {
+    const d = new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`)
+    if (!isNaN(d.getTime())) return d
+  }
+  const d = new Date(v)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function getQ(date) {
+  if (!date) return 'Unknown'
+  return `${date.getFullYear()}-Q${Math.floor(date.getMonth()/3)+1}`
+}
+
+function getMonth(date) {
+  if (!date) return 'Unknown'
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`
+}
+
+function getRegion(role) {
+  const r = (role||'').toLowerCase()
+  if (r.includes('uk')||r.includes('de')||r.includes('northern')||r.includes('dach')||r.includes('global')) return 'Northern Europe'
+  if (r.includes('fr')||r.includes('it')||r.includes('es')||r.includes('southern')) return 'Southern Europe'
+  return 'Northern Europe'
+}
+
+function fmt(n) { return n >= 1000 ? `€${(n/1000).toFixed(1)}K` : `€${Math.round(n)}` }
+function fmtFull(n) { return `€${Math.round(n).toLocaleString('en-GB')}` }
+function groupBy(arr, fn) {
+  return arr.reduce((a, x) => { const k = fn(x); (a[k]=a[k]||[]).push(x); return a }, {})
+}
+function sumBy(arr, fn) { return arr.reduce((s,x) => s + fn(x), 0) }
+
+function currentQ() {
+  const n = new Date()
+  return `${n.getFullYear()}-Q${Math.floor(n.getMonth()/3)+1}`
+}
+
+// ─── Fetch ────────────────────────────────────────────────────────────────────
+async function fetchSheet(gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.text()
+}
+
+// ─── Process raw data ─────────────────────────────────────────────────────────
+function processOpps(records) {
+  const seen = new Set()
+  const opps = []
+  for (const r of records) {
+    const id = r['Opportunity ID'] || r['Opportunity ID (18 digits)'] || ''
+    if (!id || seen.has(id)) continue
+
+    // Filter out Pricing Migration 2025
+    const campaign = r['Primary Campaign Source'] || ''
+    if (campaign.toLowerCase().includes('pricing migration')) continue
+
+    seen.add(id)
+    const stage = r['Stage'] || ''
+    const closeDate = parseDate(r['Close Date'])
+
+    opps.push({
+      id,
+      account: r['Account Name'] || '',
+      owner: r['Opportunity Owner'] || '',
+      region: getRegion(r['Role Name'] || ''),
+      stage,
+      closeDate,
+      quarter: getQ(closeDate),
+      month: getMonth(closeDate),
+      dealType: r['Product Name'] || r['Type'] || 'Upsell',
+      correctAmount: parseAmt(r['Manual Discounted Booking Value (DBV) (converted)']) ||
+                     parseAmt(r['Upsell / Downsell / Churn Value (converted)']),
+      closingReason: r['Closing Reasons Grouped'] || r['Closing Reason'] || '',
+      isWon: stage === 'Closed Won',
+      isLost: stage === 'Closed Lost',
+      isOpen: !stage.startsWith('Closed'),
+    })
+  }
+  return opps
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id] } }
+
+function makeChart(id, config) {
+  destroyChart(id)
+  const ctx = document.getElementById(id)
+  if (!ctx) return
+  charts[id] = new Chart(ctx, config)
+}
+
+function renderAll() {
+  const regionF = document.getElementById('filter-region').value
+  const ownerF  = document.getElementById('filter-owner').value
+  const quarterF = document.getElementById('filter-quarter').value
+
+  const opps = ALL_OPPS.filter(o =>
+    (regionF === 'All' || o.region === regionF) &&
+    (ownerF === 'All' || o.owner === ownerF) &&
+    (quarterF === 'All' || o.quarter === quarterF)
+  )
+
+  const won = opps.filter(o => o.isWon)
+  const lost = opps.filter(o => o.isLost)
+  const open = opps.filter(o => o.isOpen)
+
+  const cq = currentQ()
+  const cqIdx = QUARTERS.indexOf(cq)
+  const pq = cqIdx > 0 ? QUARTERS[cqIdx - 1] : QUARTERS[QUARTERS.length - 2]
+
+  const wonCQ = won.filter(o => o.quarter === cq)
+  const wonPQ = won.filter(o => o.quarter === pq)
+  const valCQ = sumBy(wonCQ, o => o.correctAmount)
+  const valPQ = sumBy(wonPQ, o => o.correctAmount)
+  const qoq = valPQ > 0 ? ((valCQ - valPQ) / valPQ) : 0
+  const totalWon = sumBy(won, o => o.correctAmount)
+  const wr = (won.length + lost.length) > 0 ? won.length / (won.length + lost.length) : 0
+  const avgDeal = won.length > 0 ? totalWon / won.length : 0
+  const pipeline = sumBy(open, o => o.correctAmount)
+
+  // ── KPIs ──
+  const kpis = [
+    { label: `${QLABELS[cq]||cq} Upsell`, value: fmt(valCQ),
+      delta: `${Math.abs(Math.round(qoq*100))}% vs ${QLABELS[pq]||pq}`, up: qoq >= 0 },
+    { label: 'Total won', value: fmtFull(totalWon), sub: `${won.length} deals` },
+    { label: 'Win rate', value: `${Math.round(wr*100)}%`, sub: `${won.length}W / ${lost.length}L`, delta: wr >= 0.6 ? 'On target ✓' : 'Below 60% target', up: wr >= 0.6 },
+    { label: 'Avg deal size', value: fmt(avgDeal), sub: 'Correct Amt for Quota' },
+    { label: 'Open pipeline', value: fmt(pipeline), sub: `${open.length} open opps` },
+    { label: `${QLABELS[cq]||cq} deals`, value: String(wonCQ.length), delta: `${wonPQ.length} in ${QLABELS[pq]||pq}`, up: wonCQ.length >= wonPQ.length },
+  ]
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      ${k.delta ? `<div class="kpi-delta ${k.up?'up':'down'}">${k.up?'↑':'↓'} ${k.delta}</div>` : ''}
+      ${k.sub && !k.delta ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+    </div>`).join('')
+
+  // ── Quarterly region chart ──
+  const wonByQ = groupBy(won, o => o.quarter)
+  const qLabels = QUARTERS.map(q => QLABELS[q]||q)
+  const northData = QUARTERS.map(q => Math.round(sumBy((wonByQ[q]||[]).filter(o=>o.region==='Northern Europe'), o=>o.correctAmount)))
+  const southData = QUARTERS.map(q => Math.round(sumBy((wonByQ[q]||[]).filter(o=>o.region==='Southern Europe'), o=>o.correctAmount)))
+  const totalData = QUARTERS.map(q => Math.round(sumBy(wonByQ[q]||[], o=>o.correctAmount)))
+
+  makeChart('chart-region', {
+    type: 'bar',
+    data: { labels: qLabels, datasets: [
+      { label: 'Northern Europe', data: northData, backgroundColor: C.north, borderRadius: 3, stack: 'a' },
+      { label: 'Southern Europe', data: southData, backgroundColor: C.south, borderRadius: 3, stack: 'a' },
+    ]},
+    options: { ...CHART_DEFAULTS, scales: {
+      x: { ...CHART_DEFAULTS.scales.x, stacked: true },
+      y: { ...CHART_DEFAULTS.scales.y, stacked: true, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmt(v) } }
+    }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` } } } }
+  })
+
+  // ── Trend ──
+  makeChart('chart-trend', {
+    type: 'line',
+    data: { labels: qLabels, datasets: [{
+      data: totalData, borderColor: C.total, backgroundColor: 'rgba(194,65,12,0.08)',
+      fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: C.total,
+    }]},
+    options: { ...CHART_DEFAULTS,
+      scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmt(v) } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtFull(ctx.parsed.y)}` } } }
+    }
+  })
+
+  // ── Win rate ──
+  const closedByQ = groupBy(opps.filter(o=>o.isWon||o.isLost), o=>o.quarter)
+  const wrData = QUARTERS.map(q => {
+    const c = closedByQ[q]||[]
+    const w = c.filter(o=>o.isWon).length
+    return c.length > 0 ? Math.round(w/c.length*100) : 0
+  })
+  const wonCountData = QUARTERS.map(q => (wonByQ[q]||[]).length)
+  const lostByQ = groupBy(lost, o=>o.quarter)
+  const lostCountData = QUARTERS.map(q => (lostByQ[q]||[]).length)
+
+  makeChart('chart-winrate', {
+    type: 'line',
+    data: { labels: qLabels, datasets: [
+      { data: wrData, borderColor: C.won, backgroundColor: 'rgba(5,150,105,0.08)', fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: C.won },
+    ]},
+    options: { ...CHART_DEFAULTS,
+      scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, min: 0, max: 100, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => `${v}%` } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}%` } } }
+    }
+  })
+
+  makeChart('chart-deals', {
+    type: 'bar',
+    data: { labels: qLabels, datasets: [
+      { label: 'Won', data: wonCountData, backgroundColor: C.won, borderRadius: 4 },
+      { label: 'Lost', data: lostCountData, backgroundColor: C.lost, borderRadius: 4 },
+    ]},
+    options: { ...CHART_DEFAULTS,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}` } } }
+    }
+  })
+
+  // ── Deal type ──
+  const byType = groupBy(won, o => (o.dealType||'Other').slice(0,30))
+  const dtEntries = Object.entries(byType)
+    .map(([t,o]) => ({ t, v: Math.round(sumBy(o, x=>x.correctAmount)) }))
+    .sort((a,b)=>b.v-a.v).slice(0,8)
+  makeChart('chart-dealtype', {
+    type: 'bar',
+    data: { labels: dtEntries.map(e=>e.t), datasets: [{ data: dtEntries.map(e=>e.v), backgroundColor: [C.north,C.south,C.total,C.open,C.purple,C.won,'#0891b2','#7c3aed'], borderRadius: 4 }]},
+    options: { indexAxis:'y', ...CHART_DEFAULTS,
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, callback: v => fmt(v) } },
+        y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, font: { size: 11 } } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtFull(ctx.parsed.x)}` } } }
+    }
+  })
+
+  // ── ASP ──
+  const aspData = QUARTERS.map(q => {
+    const o = wonByQ[q]||[]
+    return o.length > 0 ? Math.round(sumBy(o, x=>x.correctAmount)/o.length) : 0
+  })
+  makeChart('chart-asp', {
+    type: 'line',
+    data: { labels: qLabels, datasets: [{ data: aspData, borderColor: C.purple, backgroundColor: 'rgba(124,58,237,0.08)', fill: true, tension: 0.35, pointRadius: 2 }]},
+    options: { ...CHART_DEFAULTS,
+      scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmt(v) } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtFull(ctx.parsed.y)}` } } }
+    }
+  })
+
+  // ── Win rate boxes ──
+  const wrCQ = wonCQ.length + lost.filter(o=>o.quarter===cq).length > 0
+    ? Math.round(wonCQ.length / (wonCQ.length + lost.filter(o=>o.quarter===cq).length) * 100) : 0
+  document.getElementById('wr-boxes').innerHTML = [
+    { num: `${wrCQ}%`, lbl: 'Overall', target: 'Target 66%', color: wrCQ >= 66 ? C.won : C.lost },
+    { num: `${Math.round(wr*100)}%`, lbl: 'All periods', target: 'Target 66%', color: wr >= 0.66 ? C.won : C.lost },
+    { num: `${won.length}`, lbl: 'Deals won', target: `${lost.length} lost`, color: C.north },
+  ].map(b => `<div class="wr-box"><div class="wr-num" style="color:${b.color}">${b.num}</div><div class="wr-lbl">${b.lbl}</div><div class="wr-target">${b.target}</div></div>`).join('')
+
+  // ── Funnel ──
+  const stages = ['New Allocated','Working','Qualification','Discovery','Technical Validation','Proposal','Contract Signing','Closed Won']
+  const openByStage = groupBy(open, o=>o.stage)
+  const funnelItems = stages.map(s => ({
+    name: s.replace('Technical Validation','Tech. Validation'),
+    value: s === 'Closed Won' ? won.length : (openByStage[s]||[]).length,
+    fill: s === 'Closed Won' ? C.won : C.north,
+  })).filter(f=>f.value>0)
+  const maxF = Math.max(...funnelItems.map(f=>f.value), 1)
+  document.getElementById('funnel-list').innerHTML = funnelItems.map(f => `
+    <div class="funnel-row">
+      <div class="funnel-stage">${f.name}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${Math.max(f.value/maxF*100,4)}%;background:${f.fill}">
+          <span>${f.value > 2 ? f.value : ''}</span>
+        </div>
+      </div>
+      <div class="funnel-count">${f.value}</div>
+    </div>`).join('')
+
+  // ── Pipeline by month ──
+  const openByMonth = groupBy(open.filter(o=>o.month&&o.month!=='Unknown'), o=>o.month)
+  const months = Object.keys(openByMonth).sort().slice(-8)
+  const monthLabels = months.map(m => {
+    const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const [y,mo] = m.split('-')
+    return `${mn[parseInt(mo)-1]} ${y.slice(2)}`
+  })
+  makeChart('chart-pipeline', {
+    type: 'bar',
+    data: { labels: monthLabels, datasets: [{ data: months.map(m=>Math.round(sumBy(openByMonth[m]||[], o=>o.correctAmount))), backgroundColor: C.open, borderRadius: 4 }]},
+    options: { ...CHART_DEFAULTS,
+      scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmt(v) } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtFull(ctx.parsed.y)}` } } }
+    }
+  })
+
+  // ── Rep leaderboard ──
+  const repData = Object.entries(groupBy(won.filter(o=>o.quarter===cq||o.quarter===pq), o=>o.owner))
+    .map(([owner, opps]) => ({
+      owner: owner.split(' ').map((w,i) => i===0?w:w[0]+'.').join(' '),
+      cq: Math.round(sumBy(opps.filter(o=>o.quarter===cq), o=>o.correctAmount)),
+      pq: Math.round(sumBy(opps.filter(o=>o.quarter===pq), o=>o.correctAmount)),
+    }))
+    .filter(r=>r.cq>0||r.pq>0)
+    .sort((a,b)=>b.cq-a.cq)
+    .slice(0,10)
+
+  makeChart('chart-rep', {
+    type: 'bar',
+    data: { labels: repData.map(r=>r.owner), datasets: [
+      { label: QLABELS[cq]||cq, data: repData.map(r=>r.cq), backgroundColor: C.north, borderRadius: 4 },
+      { label: QLABELS[pq]||pq, data: repData.map(r=>r.pq), backgroundColor: '#cbd5e1', borderRadius: 4 },
+    ]},
+    options: { indexAxis:'y', ...CHART_DEFAULTS,
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, callback: v => fmt(v) } },
+        y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, font: { size: 12 } } }
+      },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { font: { size: 12, family: 'DM Sans' }, color: C.text, boxWidth: 12, boxHeight: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.x)}` } }
+      }
+    }
+  })
+
+  // ── Loss reasons ──
+  const reasonData = Object.entries(groupBy(lost.filter(o=>o.closingReason), o=>o.closingReason))
+    .map(([r,o]) => ({ r: r.slice(0,35), n: o.length }))
+    .sort((a,b)=>b.n-a.n).slice(0,6)
+  if (reasonData.length > 0) {
+    document.getElementById('loss-section').style.display = ''
+    makeChart('chart-loss', {
+      type: 'bar',
+      data: { labels: reasonData.map(r=>r.r), datasets: [{ data: reasonData.map(r=>r.n), backgroundColor: C.lost, borderRadius: 4 }]},
+      options: { indexAxis:'y', ...CHART_DEFAULTS,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} deals` } } }
+      }
+    })
+  } else {
+    document.getElementById('loss-section').style.display = 'none'
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const [mainText] = await Promise.all([
+      fetchSheet(MAIN_GID),
+      fetchSheet(CONV_GID).catch(() => ''),
+    ])
+
+    const mainRecords = toRecords(parseCSV(mainText))
+    ALL_OPPS = processOpps(mainRecords)
+
+    // Populate filters
+    const regions = ['All', ...new Set(ALL_OPPS.map(o=>o.region).filter(Boolean))]
+    const owners  = ['All', ...new Set(ALL_OPPS.map(o=>o.owner).filter(Boolean))].sort()
+
+    const rSel = document.getElementById('filter-region')
+    const oSel = document.getElementById('filter-owner')
+    const qSel = document.getElementById('filter-quarter')
+
+    regions.forEach(r => { const o = document.createElement('option'); o.value = r; o.text = r === 'All' ? 'All Regions' : r; rSel.appendChild(o) })
+    owners.forEach(r => { const o = document.createElement('option'); o.value = r; o.text = r === 'All' ? 'All Owners' : r; oSel.appendChild(o) })
+    QUARTERS.forEach(q => { const o = document.createElement('option'); o.value = q; o.text = QLABELS[q]||q; qSel.appendChild(o) })
+
+    ;[rSel, oSel, qSel].forEach(sel => sel.addEventListener('change', renderAll))
+
+    document.getElementById('last-updated').textContent =
+      `Updated ${new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })}`
+
+    document.getElementById('loading-state').style.display = 'none'
+    document.getElementById('dashboard').style.display = 'block'
+
+    renderAll()
+
+  } catch (err) {
+    document.getElementById('loading-state').innerHTML =
+      `<div style="color:#dc2626;font-size:14px">⚠️ Could not load data.<br><small style="color:#9ca3af">${err.message}</small><br><br>
+      <small>Make sure your Google Sheet is shared as <strong>"Anyone with the link can view"</strong></small></div>`
+    console.error(err)
+  }
+}
+
+init()
+</script>
+</body>
+</html>
